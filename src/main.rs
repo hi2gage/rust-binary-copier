@@ -4,13 +4,14 @@ use serde::Deserialize;
 use std::env;
 use std::fs;
 use std::path::Path;
+use std::path::PathBuf;
 
-#[derive(Debug, Deserialize)]
+#[derive(Deserialize)]
 struct CargoFile {
     package: Option<PackageConfig>,
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Deserialize)]
 struct PackageConfig {
     name: Option<String>,
     version: Option<String>,
@@ -27,21 +28,37 @@ fn copy(from_path: &Path, to_path: &Path) -> std::io::Result<()> {
     Ok(())
 }
 
+fn get_file_name(cargo: CargoFile) -> String {
+    cargo.package.unwrap().name.unwrap()
+}
+
+fn get_source_path(file_name: &String) -> PathBuf {
+    let mut current_working_dir = env::current_dir().unwrap();
+    current_working_dir.push("target");
+    current_working_dir.push("release");
+    current_working_dir.push(file_name);
+    return current_working_dir;
+}
+
+fn get_target_path(file_name: &String) -> PathBuf {
+    let mut target = PathBuf::new();
+    target.push("/Users/gage/cmd-line-programs/rust/");
+    target.push(file_name);
+    return target;
+}
+
 fn main() {
     let cargo_toml_result = read_cargo_file();
 
-    let file_name = cargo_toml_result.unwrap().package.unwrap().name.unwrap();
-    let current_working_dir = env::current_dir().unwrap().into_os_string();
+    let file_name = get_file_name(cargo_toml_result.unwrap());
 
-    let current_working_dir_string = current_working_dir;
-    let cwd_temp = current_working_dir_string.to_str().unwrap();
-    let path_from_str = format!("{}/target/release/{}", cwd_temp, file_name);
-    let path_from = Path::new(&path_from_str);
+    let source_path = get_source_path(&file_name);
+    let target_path = get_target_path(&file_name);
 
-    let path_to_str = format!("/Users/gage/cmd-line-programs/rust/{}", file_name);
-    let path_to = Path::new(&path_to_str);
+    println!("{}", source_path.display());
+    println!("{}", target_path.display());
 
-    copy(path_from, path_to);
-    let file_size = path_to.metadata().unwrap().len();
+    let _result = copy(&source_path, &target_path);
+    let file_size = target_path.metadata().unwrap().len();
     println!("FILE SIZE: {} bytes", file_size)
 }
